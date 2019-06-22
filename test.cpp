@@ -2,6 +2,7 @@
  */
 #include "Operation.h"
 #include "Optimization.h"
+#include "linAlg_Operation.h"
 #include <iostream>
 #include <vector>
 
@@ -25,5 +26,10 @@ int main() {
 	std::cout << test3.getVal() << std::endl;
 	std::cout << var << std::endl;
 	std::cout << var2 << std::endl;
+	using namespace ML;
+	ML::MatrixFVal<2, 2, Float<2,1>, Float<3,1>, Float<4,1>, Float<5,1>> mat;
+	for (int i = 0; i < 4; i++) {
+		std::cout << mat.getVal()[i] << std::endl;
+	}
 	return 0;
 }
