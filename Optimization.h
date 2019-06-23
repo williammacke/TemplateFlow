@@ -2,6 +2,7 @@
 #define OPTIMIZATION_H_
 
 #include "Operation.h"
+#include <iostream>
 
 template <class T, typename...Args>
 struct GradientDescentOptimizerHelper;

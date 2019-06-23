@@ -132,6 +132,39 @@ namespace ML {
 				}
 		};
 
+	template <float* var>
+		struct Placeholder<float, var> {
+			static float getVal() {
+				return *var;
+			}
+
+			template <class V>
+				static FVal<Float<0, 1>> getDerivative(V v) {
+					return {};
+				}
+
+			template <class E>
+				static void setVal(E val) {
+					*var = val;
+				}
+		};
+
+	template <double* var>
+		struct Placeholder<double, var> {
+			static double getVal() {
+				return *var;
+			}
+
+			template <class V>
+				static FVal<Double<0, 1>> getDerivative(V v) {
+					return {};
+				}
+			template <class E>
+				static void setVal(E val) {
+					*var = val;
+				}
+		};
+
 	template <class T, class E>
 		struct Addition {
 			static auto getVal() -> decltype(T::getVal() + E::getVal()) {
@@ -225,8 +258,8 @@ namespace ML {
 
 	template <class T>
 		struct ln {
-			static auto getVal() -> decltype(log(T::getVal())) {
-				return log(T::getVal());
+			static double getVal() {
+				return T::getVal()<=0?0:std::log(T::getVal());
 			}
 
 			template <class V>
