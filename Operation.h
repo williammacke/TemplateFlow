@@ -224,7 +224,7 @@ namespace ML {
 	template <class T, class E>
 		struct Division {
 			static auto getVal() -> decltype(T::getVal()/E::getVal()) {
-				return T::getVal()/E::getVal();
+				return E::getVal()==0?0:T::getVal()/E::getVal();
 			}
 
 			template <class V>
@@ -263,19 +263,19 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Division<FVal<Float<0,1>>, T> {
+			static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, T> {
 				return {};
 			}
 		};
 
 	template <class T, class E>
 		struct log {
-			static auto getVal() -> decltype(log(E::getVal())/log(T::getVal())) {
-				return log(E::getVal())/log(T::getValI());
+			static auto getVal() -> decltype(std::log(E::getVal())/std::log(T::getVal())) {
+				return std::log(E::getVal())/std::log(T::getValI());
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Division<FVal<Float<0,1>>, Multiplication<E, ln<T>>> {
+			static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, Multiplication<E, ln<T>>> {
 				return {};
 			}
 		};
