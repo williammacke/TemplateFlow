@@ -6,14 +6,40 @@
 #include <iostream>
 #include <vector>
 #include <tuple>
+#include "math.h"
 
 float var = .5;
 float var2 = 0;
 
 float p1 = 1.0f,p2=1.5f;
 
+
+struct ZeroFunc {
+	template <class T>
+		int operator()(T t) {
+			return 0;
+		}
+
+	template <class V>
+		ZeroFunc getDerivative(V var) {
+			return {};
+		}
+};
+
+struct AddFive {
+	template <class T>
+		T operator()(T t) {
+			return t+5;
+		}
+
+	template <class V>
+		ZeroFunc getDerivative(V var) {
+			return {};
+		}
+};
+
 int main() {
-	using namespace ML;
+	using namespace TF;
 	Var<float, &var> m;
 	Var<float, &var2> b;
 	Placeholder<float, &p1> x;
@@ -30,9 +56,15 @@ int main() {
 	GradientDescentOptimizer<decltype(m), decltype(b)>::Optimize(err, 500, data.begin(), data.end(), x, y);
 	std::cout << var << " " << var2 << std::endl;
 
-	Vector<Vector<Val<int, 1>, Val<int, 2>>, Vector<Val<int, 3>, Val<int,4>>> a;
-	Vector<Val<int, 1>, Val<int, 1>> d;
-	auto c = matMul(a, d);
-	std::cout << std::get<0>(c.getVal()) << std::endl;
+	Val<int, 1> a;
+	FVal<Float<1,5>> c;
+	auto d = a+c;
+	constexpr auto e = d.getVal();
+
+	std::cout << e << std::endl;
+
+	constexpr auto p = math::pow(10, 3);
+	
+	std::cout << p << std::endl;
 	return 0;
 }

@@ -3,7 +3,7 @@
 #include "Operation.h"
 #include <cmath>
 #include <tuple>
-namespace ML {
+namespace TF {
 
 
 	template <typename...Args>
@@ -13,7 +13,7 @@ namespace ML {
 			}
 
 			template <class V>
-				static auto getDerivative(V var) -> Vector<decltype(Args::getDerivative(var))...> {
+				constexpr static auto getDerivative(V var) -> Vector<decltype(Args::getDerivative(var))...> {
 					return {};
 				}
 			
@@ -21,7 +21,7 @@ namespace ML {
 		};
 
 	template <class T, typename...Args>
-		Vector<T, Args...> vecConcat(Vector<T>, Vector<Args...>) {
+		constexpr Vector<T, Args...> vecConcat(Vector<T>, Vector<Args...>) {
 			return {};
 		}
 
@@ -36,27 +36,27 @@ namespace ML {
 		};
 
 	template <class T, T* data, int l>
-		typename VarVector<T, data, l>::type makeVarVector() {
+		constexpr typename VarVector<T, data, l>::type makeVarVector() {
 			return {};
 		}
 
 	template <class T, typename...Args>
-		T head(Vector<T, Args...>) {
+		constexpr T head(Vector<T, Args...>) {
 			return {};
 		}
 
 	template <class T, typename...Args>
-		Vector<Args...> tail(Vector<T, Args...>) {
+		constexpr Vector<Args...> tail(Vector<T, Args...>) {
 			return {};
 		}
 
 	template <class T, class E>
-		auto dot(T t, E e) ->Addition<Multiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))> {
+		constexpr auto dot(T t, E e) ->Addition<Multiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))> {
 			return {};
 		}
 
 	template <class T, class E>
-		auto dot(Vector<T> t, Vector<E> e) -> Multiplication<T, E> {
+		constexpr auto dot(Vector<T> t, Vector<E> e) -> Multiplication<T, E> {
 			return {};
 		}
 
@@ -119,7 +119,7 @@ namespace ML {
 		constexpr bool isEmpty_v = isEmpty<T>::value;
 
 	template <class T, class E>
-		auto map(T t, E e) {
+		constexpr auto map(T t, E e) {
 			if constexpr(isEmpty_v<E>) {
 				return Vector<>{};
 			}
@@ -128,30 +128,30 @@ namespace ML {
 			}
 		}
 
-	struct headFunc {
+	struct Head {
 		template <class T>
-			auto operator()(T t) -> decltype(head(t)) {
+			constexpr auto operator()(T t) -> decltype(head(t)) {
 				return {};
 			}
 	};
 
-	struct tailFunc {
+	struct Tail {
 		template <class T>
-			auto operator()(T t) -> decltype(tail(t)) {
+			constexpr auto operator()(T t) -> decltype(tail(t)) {
 				return {};
 			}
 	};
 
 	template <class T>
-		auto transpose(T t) {
+		constexpr auto transpose(T t) {
 			if constexpr(isEmpty_v<T>) {
 				return Vector<>{};
 			}
-			return vecConcat(map(headFunc{}, t), transpose(map(tailFunc{}, t)));
+			return vecConcat(map(Head{}, t), transpose(map(Tail{}, t)));
 		}
 
 	template <class T, class E, typename=std::enable_if_t<isVector_v<T> && isVector_v<E>>>
-		auto matMulHelper(T t, E e) {
+		constexpr auto matMulHelper(T t, E e) {
 			if constexpr(isEmpty_v<T> || isEmpty_v<E>) {
 				return Vector<>{};
 			}
@@ -170,7 +170,7 @@ namespace ML {
 		}
 
 	template <class T, class E, typename=std::enable_if_t<isVector_v<T> && isVector_v<E>>>
-		auto matMul(T t, E e) {
+		constexpr auto matMul(T t, E e) {
 			if constexpr(isEmpty_v<T> || isEmpty_v<E>) {
 				return Vector<>{};
 			}
@@ -187,6 +187,32 @@ namespace ML {
 				return Vector<decltype(dot(t, e))>{};
 			}
 		}
+
+	template <class T>
+	struct FuncApply;
+
+	template <class T, class V> 
+		constexpr auto funcApply(T t, V v) {
+			if constexpr(!isVector_v<V>) {
+				return func<T, V>{};
+			}
+			else {
+				return map(FuncApply<T>{}, v);
+			}
+		}
+
+	template <class T>
+		struct FuncApply {
+			template <class V>
+			constexpr auto operator()(V v) {
+				if constexpr(!isVector_v<V>) {
+					return func<T, V>{};
+				}
+				else {
+					return map(FuncApply<T>{}, v);
+				}
+			}
+		};
 
 }
 

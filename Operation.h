@@ -4,22 +4,35 @@
 #include <type_traits>
 #include <cmath>
 
-namespace ML {
+namespace TF {
 
 
 
 	template <class T, T val>
 		struct Val {
-			static T getVal() {
+			constexpr static T getVal() {
 				return val;
 			}
 
 			
 			template <class E>
-				static Val<T, T{}> getDerivative(E var) {
+				constexpr static Val<T, T{}> getDerivative(E var) {
 					return {};
 				}
 		};
+
+	template <class T>
+		struct isConstant {
+			constexpr static bool value = false;
+		};
+
+	template <class T, T val>
+		struct isConstant<Val<T, val>> {
+			constexpr static bool value = true;
+		};
+
+	template <class T>
+		constexpr bool isConstant_v = isConstant<T>::value;
 
 
 	template <long num, long dem>
@@ -40,28 +53,41 @@ namespace ML {
 
 	template <long num, long dem>
 		struct FVal<Float<num,dem>> {
-			static float getVal() {
+			constexpr static float getVal() {
 				return Float<num,dem>::val;
 			}
 
 			template <class V>
-			static Float<0, 1> getDerivative(V var) {
+			constexpr static Float<0, 1> getDerivative(V var) {
 				return {};
 			}
 
 
 		};
+
+	template <long num, long dem>
+		struct isConstant<FVal<Float<num, dem>>> {
+			static constexpr bool value = true;
+		};
 	template<long i, long j>
 		struct FVal<Double<i, j>> {
-			static double getVal() {
+			static constexpr double getVal() {
 				return Double<i,j>::val;
 			}
 
 			template <class V>
-			static Double<0, 1> getDerivative(V var) {
+			constexpr static Double<0, 1> getDerivative(V var) {
 				return {};
 			}
 		};
+
+	template <long i, long j>
+		struct isConstant<FVal<Double<i, j>>> {
+			constexpr static bool value = true;
+		};
+		
+
+
 
 	template <class T, T* var>
 		struct Var {
@@ -70,11 +96,11 @@ namespace ML {
 			}
 
 			template <class E>
-				static Val<T, T{}> getDerivative(E v) {
+				constexpr static Val<T, T{}> getDerivative(E v) {
 					return {};
 				}
 
-			static Val<T, 1> getDerivative(Var<T, var> v) {
+			constexpr static Val<T, 1> getDerivative(Var<T, var> v) {
 				return {};
 			}
 
@@ -91,11 +117,11 @@ namespace ML {
 			}
 
 			template <class E>
-				static FVal<Float<0,1>> getDerivative(E v) {
+				constexpr static FVal<Float<0,1>> getDerivative(E v) {
 					return {};
 				}
 
-			static FVal<Float<1,1>> getDerivative(Var<float, var> v) {
+			constexpr static FVal<Float<1,1>> getDerivative(Var<float, var> v) {
 				return {};
 			}
 
@@ -122,7 +148,7 @@ namespace ML {
 			}
 
 			template <class E>
-				static Val<T, T{}> getDerivative(E v) {
+				constexpr static Val<T, T{}> getDerivative(E v) {
 					return {};
 				}
 
@@ -139,7 +165,7 @@ namespace ML {
 			}
 
 			template <class V>
-				static FVal<Float<0, 1>> getDerivative(V v) {
+				constexpr static FVal<Float<0, 1>> getDerivative(V v) {
 					return {};
 				}
 
@@ -156,7 +182,7 @@ namespace ML {
 			}
 
 			template <class V>
-				static FVal<Double<0, 1>> getDerivative(V v) {
+				constexpr static FVal<Double<0, 1>> getDerivative(V v) {
 					return {};
 				}
 			template <class E>
@@ -172,15 +198,38 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Addition<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
+			constexpr static auto getDerivative(V var) -> Addition<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
 				return {};
 			}
 
 		};
 
+	template <class T, class E>
+		struct ConstAddition {
+			static constexpr auto val = T::getVal()+E::getVal();
+			constexpr static auto getVal() -> decltype(val) {
+				return val;
+			}
+
+			template <class V>
+				constexpr static auto getDerivative(V var) -> ConstAddition<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
+					return {};
+				}
+		};
+
+	template <class T, class E>
+		struct isConstant<ConstAddition<T, E>> {
+			constexpr static bool value = true;
+		};
+
 	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		Addition<T, E> operator+(const T& t, const E& e) {
-			return {};
+		constexpr auto operator+(T t, E e) {
+			if constexpr(isConstant_v<T> && isConstant_v<E>) {
+				return ConstAddition<T, E>{};
+			}
+			else {
+				return Addition<T, E>{};
+			}
 		}
 
 	template <class T, class E>
@@ -190,14 +239,38 @@ namespace ML {
 			}
 
 			template <class V>
-				static auto getDerivative(V var) -> Subtraction<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
+				constexpr static auto getDerivative(V var) -> Subtraction<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
 					return {};
 				}
 		};
 
+	template <class T, class E>
+		struct ConstSubtraction {
+			static constexpr auto val = T::getVal() - E::getVal();
+
+			constexpr static auto getVal() -> decltype(val) {
+				return val;
+			}
+
+			template <class V>
+				constexpr static auto getDerivative(V var) -> ConstSubtraction<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
+					return {};
+				}
+		};
+
+	template <class T, class E>
+		struct isConstant<ConstSubtraction<T, E>> {
+			static constexpr bool value = true;
+		};
+
 	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		Subtraction<T, E> operator-(const T& t, const E& e) {
-			return {};
+		constexpr auto operator-(T t, E e) {
+			if constexpr(isConstant_v<T> && isConstant_v<E>) {
+				return ConstSubtraction<T, E>{};
+			}
+			else {
+				return Subtraction<T,E>{};
+			}
 		}
 
 	template <class T, class E>
@@ -207,15 +280,40 @@ namespace ML {
 			}
 
 			template <class V>
-				static auto getDerivative(V var) -> Addition<Multiplication<T, decltype(E::getDerivative(var))>,
+				constexpr static auto getDerivative(V var) -> Addition<Multiplication<T, decltype(E::getDerivative(var))>,
 					    					Multiplication<decltype(T::getDerivative(var)), E>> {
 											return {};
 										}
 		};
 
+	template <class T, class E>
+		struct ConstMultiplication {
+			static constexpr auto val = T::getVal()*E::getVal();
+
+			static constexpr auto getVal() -> decltype(val) {
+				return val;
+			}
+
+			template <class V>
+				static constexpr auto getDerivative(V var) -> ConstAddition<ConstMultiplication<decltype(T::getDerivative(var)), E>,
+												ConstMultiplication<T, decltype(E::getDerivative(var))>> {
+									return {};
+				}
+		};
+
+	template <class T, class E>
+		struct isConstant<ConstMultiplication<T, E>> {
+			constexpr static bool value = true;
+		};
+
 	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		Multiplication<T, E> operator*(const T& t, const E& e) {
-			return {};
+		constexpr auto operator*(T t, E e) {
+			if constexpr(isConstant_v<T> && isConstant_v<E>) {
+				return ConstMultiplication<T, E>{};
+			}
+			else {
+				return Multiplication<T, E>{};
+			}
 		}
 
 	template <class T, class E>
@@ -228,7 +326,7 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Division<
+			constexpr static auto getDerivative(V var) -> Division<
 								Subtraction<Multiplication<E, decltype(T::getDerivative(var))>,
 										Multiplication<decltype(E::getDerivative(var)), T>>,
 										exp<E, Val<int, 2>>> {
@@ -248,7 +346,7 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Multiplication<exp<T,E>, Addition<
+			constexpr static auto getDerivative(V var) -> Multiplication<exp<T,E>, Addition<
 										Multiplication<decltype(E::getDerivative(var)), ln<T>>,
 										Multiplication<decltype(T::getDerivative(var)), Division<E, T>>>> {
 											return {};
@@ -263,7 +361,7 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, T> {
+			constexpr static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, T> {
 				return {};
 			}
 		};
@@ -275,17 +373,17 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, Multiplication<E, ln<T>>> {
+			constexpr static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, Multiplication<E, ln<T>>> {
 				return {};
 			}
 		};
 
 	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		Division<T, E> operator/(const T& t, const E& e) {
+		constexpr Division<T, E> operator/(T t, E e) {
 			return {};
 		}
 	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		exp<T, E> operator^(const T& t, const E& e) {
+		constexpr exp<T, E> operator^(T t, E e) {
 			return {};
 		}
 
@@ -296,7 +394,7 @@ namespace ML {
 			}
 
 			template <class V>
-			static auto getDerivative(V var) -> Multiplication<func<decltype(T::getDerivative(var)), E>, decltype(E::getDerivative(var))> {
+			constexpr static auto getDerivative(V var) -> Multiplication<func<decltype(T::getDerivative(var)), E>, decltype(E::getDerivative(var))> {
 				return {};
 			}
 		};
