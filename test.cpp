@@ -7,6 +7,8 @@
 #include <vector>
 #include <tuple>
 #include "math.h"
+#include <cmath>
+#include "Iteration.h"
 
 float var = .5;
 float var2 = 0;
@@ -63,8 +65,20 @@ int main() {
 
 	std::cout << e << std::endl;
 
-	constexpr auto p = math::pow(10, 3);
-	
-	std::cout << p << std::endl;
+	Vector<Val<int, 5>, Val<int, 6>> vec;
+	auto vec2 = map([](auto y) {return y+Val<int, 1>{}; }, vec);
+	std::cout << head(vec2).getVal() << std::endl;
+
+	constexpr auto forVal = For<1,10>(Val<int, 1>{}, [](auto i,auto y) {return y+i;}).getVal();
+	std::cout << forVal << std::endl;
+
+	constexpr auto WhileVal = While([](auto y) { return y.getVal() < 5; }, Val<int, 0>{}, [](auto y) {return y+Val<int, 1>{};}).getVal();
+	std::cout << WhileVal << std::endl;
+
+	constexpr ConstVector<Val<int, 5>, Val<int, 6>, Val<int, 7>> testVec;
+	constexpr auto ForeachVal = Foreach(testVec, Val<int, 0>{}, [](auto i, auto y) { return i+y; }).getVal();
+	std::cout << ForeachVal << std::endl;
+
+
 	return 0;
 }

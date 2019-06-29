@@ -35,16 +35,19 @@ namespace TF {
 		}
 
 		constexpr double exp(double y) {
-			double start{1.0};
-			auto epsilon{std::numeric_limits<double>::epsilon()*y};
-			for (int i = 1; i < 20; i++) {
-				auto term{pow(y, i)/factorial(i)};
-				start += term;
-				if (term < epsilon) {
-					return start;
-				}
+			if (y < std::numeric_limits<double>::epsilon()) {
+				return 0;
 			}
-			return start;
+			if (y > 10) {
+				return powI(exp(y/2), 2);
+			}
+			double start{1.0};
+			for (int i = 1; i < 20; i++) {
+				auto term{pow(abs(y), i)/factorial(i)};
+				start += term;
+			}
+
+			return y<0?1.0/start:start;
 		}
 
 		constexpr int digits(double num) {

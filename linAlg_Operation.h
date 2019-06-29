@@ -20,8 +20,40 @@ namespace TF {
 
 		};
 
+	template <typename...Args>
+		struct ConstVector {
+			static constexpr std::tuple<decltype(Args::getVal())...> getVal() {
+				return std::make_tuple(Args::getVal()...);
+			}
+
+			template <class V>
+				static constexpr auto getDerivative(V var) -> ConstVector<decltype(Args::getDerivative(var))...> {
+					return {};
+				}
+		};
+
+	template <typename...Args>
+		struct isConstant<ConstVector<Args...>> {
+			static constexpr bool value = true;
+		};
+
 	template <class T, typename...Args>
 		constexpr Vector<T, Args...> vecConcat(Vector<T>, Vector<Args...>) {
+			return {};
+		}
+
+	template <class T, typename...Args>
+		constexpr Vector<T, Args...> vecConcat(ConstVector<T>, Vector<Args...>) {
+			return {};
+		}
+
+	template <class T, typename...Args>
+		constexpr Vector<T, Args...> vecConcat(Vector<T>, ConstVector<Args...>) {
+			return {};
+		}
+
+	template <class T, typename...Args>
+		constexpr ConstVector<T, Args...> vecConcat(ConstVector<T>, ConstVector<Args...>) {
 			return {};
 		}
 
@@ -46,19 +78,41 @@ namespace TF {
 		}
 
 	template <class T, typename...Args>
+		constexpr T head(ConstVector<T, Args...>) {
+			return {};
+		}
+
+	template <class T, typename...Args>
 		constexpr Vector<Args...> tail(Vector<T, Args...>) {
 			return {};
 		}
 
-	template <class T, class E>
-		constexpr auto dot(T t, E e) ->Addition<Multiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))> {
+	template <class T, typename...Args>
+		constexpr ConstVector<Args...> tail(ConstVector<T, Args...>) {
 			return {};
+		}
+
+
+	template <class T, class E>
+		constexpr auto dot(T t, E e) {
+			if constexpr(isConstant_v<E> && isConstant_v<T>) {
+				return ConstAddition<ConstMultiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))>{};
+			}
+			else {
+				return Addition<Multiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))>{};
+			}
 		}
 
 	template <class T, class E>
 		constexpr auto dot(Vector<T> t, Vector<E> e) -> Multiplication<T, E> {
 			return {};
 		}
+
+	template <class T, class E>
+		constexpr auto dot(ConstVector<T> t, ConstVector<E> e) -> Multiplication<T, E> {
+			return {};
+		}
+
 
 	template <class T>
 		struct isVector {
@@ -67,6 +121,11 @@ namespace TF {
 
 	template <typename...Args>
 		struct isVector<Vector<Args...>> {
+			constexpr static bool value = true;
+		};
+
+	template <typename...Args>
+		struct isVector<ConstVector<Args...>> {
 			constexpr static bool value = true;
 		};
 
@@ -91,6 +150,16 @@ namespace TF {
 			constexpr static bool value = isVector<T>::value;
 		};
 
+	template <class T, typename...Args>
+		struct isMatrix<ConstVector<T, Args...>> {
+			constexpr static bool value = isVector<T>::value&&isMatrix<ConstVector<Args...>>::value;
+		};
+
+	template <class T>
+		struct isMatrix<ConstVector<T>> {
+			constexpr static bool value = isVector<T>::value;
+		};
+
 	template <class T, T *data, int r, int c>
 		struct VarMatrix {
 			using type = decltype(vecConcat(Vector<typename VarVector<T, data, c>::type>{}, typename VarMatrix<T, data+c, r-1, c>::type{}));
@@ -110,9 +179,19 @@ namespace TF {
 			constexpr static bool value = true;
 		};
 
+	template <>
+		struct isEmpty<ConstVector<>> {
+			constexpr static bool value = true;
+		};
+
 	template <class T, typename...Args>
 		struct isEmpty<Vector<T, Args...>> {
 			constexpr static bool value = isEmpty<T>::value&&isEmpty<Vector<Args...>>::value;
+		};
+
+	template <class T, typename...Args>
+		struct isEmpty<ConstVector<T, Args...>> {
+			constexpr static bool value = isEmpty<T>::value&&isEmpty<ConstVector<Args...>>::value;
 		};
 
 	template <class T>
@@ -120,8 +199,14 @@ namespace TF {
 
 	template <class T, class E>
 		constexpr auto map(T t, E e) {
-			if constexpr(isEmpty_v<E>) {
+			if constexpr(isEmpty_v<E> && isConstant_v<E>) {
+				return ConstVector<>{};
+			}
+			else if constexpr(isEmpty_v<E>) {
 				return Vector<>{};
+			}
+			else if constexpr(isConstant_v<E>) {
+				return vecConcat(ConstVector<decltype(t(head(e)))>{}, map(t, tail(e)));
 			}
 			else {
 				return vecConcat(Vector<decltype(t(head(e)))>{}, map(t, tail(e)));
