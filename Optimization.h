@@ -19,8 +19,7 @@ namespace TF{
 					for (int i = 0; i < numIterations; i++) {
 						pFirst = pFirst_cpy;
 						while (pFirst != pLast) {
-							P::setVal(*pFirst);
-							GradientDescentOptimizerHelper<T, Args...>::Optimize(expr, learningRate, ++pFirst, pLast, args...);
+							GradientDescentOptimizerHelper<T, Args...>::Optimize(expr, learningRate, pFirst, pLast, placeholder, args...);
 						}
 					}
 				}
@@ -32,7 +31,10 @@ namespace TF{
 
 			template <class V1, class V2>
 				static void adjustVec(V1 v1, V2 v2, float learningRate) {
-					if constexpr(isVector_v<decltype(head(v1))>) {
+					if constexpr(isEmpty_v<V1>) {
+						return;
+					}
+					else if constexpr(isVector_v<decltype(head(v1))>) {
 						adjustVec(head(v1), head(v2), learningRate);
 						adjustVec(tail(v1), tail(v2), learningRate);
 					}
@@ -59,8 +61,18 @@ namespace TF{
 				static void Optimize(E expr, float learningRate, Iterator& pFirst, Iterator& pLast, P placeholder, Args2...args) {
 					if (pFirst == pLast)
 						return;
-					P::setVal(*pFirst);
-					Optimize(expr, learningRate, ++pFirst, pLast, args...);
+					if constexpr(isVector_v<P>) {
+						if constexpr(isEmpty_v<P>) {
+							Optimize(expr, learningRate, pFirst, pLast, args...);
+						}
+						else {
+							Optimize(expr, learningRate, pFirst, pLast, head(placeholder), tail(placeholder), args...);
+						}
+					}
+					else {
+						P::setVal(*pFirst);
+						Optimize(expr, learningRate, ++pFirst, pLast, args...);
+					}
 				}
 
 		};
