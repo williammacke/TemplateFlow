@@ -16,6 +16,8 @@ float var2 = 0;
 float p1 = 1.0f,p2=1.5f;
 
 
+
+
 struct ZeroFunc {
 	template <class T>
 		int operator()(T t) {
@@ -78,6 +80,17 @@ int main() {
 	constexpr ConstVector<Val<int, 5>, Val<int, 6>, Val<int, 7>> testVec;
 	constexpr auto ForeachVal = Foreach(testVec, Val<int, 0>{}, [](auto i, auto y) { return i+y; }).getVal();
 	std::cout << ForeachVal << std::endl;
+
+	std::cout << vecLength(vec) << std::endl;
+	
+
+	constexpr auto blargh1 = makeValMatrix<int, 2, 2, 1, 2, 3, 4>();
+	constexpr auto blargh2 = makeValVector<int, 5, 6>();
+	constexpr auto blargh3 = matMul(blargh1, blargh2);
+	constexpr auto blargh4 = blargh3.getVal();
+	std::cout << blargh4[0] << std::endl;
+
+
 
 
 	return 0;

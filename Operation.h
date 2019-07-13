@@ -47,6 +47,34 @@ namespace TF {
 			constexpr static float val = static_cast<float>(num)/dem;
 		};
 
+	template <class T>
+		struct isDouble {
+			constexpr static bool value = false;
+		};
+
+	template <long num, long dem>
+		struct isDouble<Double<num,dem>> {
+			constexpr static bool value = true;
+		};
+
+	template <class T>
+		constexpr bool isDouble_v = isDouble<T>::value;
+
+
+	template <class T>
+		struct isFloat {
+			constexpr static bool value = false;
+		};
+
+	template <long num, long dem>
+		struct isFloat<Float<num, dem>> {
+			constexpr static bool value = true;
+		};
+
+
+	template <class T>
+		constexpr bool isFloat_v = isFloat<T>::value;
+
 
 	template <class T>
 		struct FVal;
@@ -505,5 +533,11 @@ namespace TF {
 		struct isConstant<ConstFunc<T, E>> {
 			static constexpr bool value = true;
 		};
+
+	template <class T1, class T2>
+		constexpr bool isSame(T1 t1, T2 t2) {
+			return std::is_same_v<decltype(t1.getVal()), decltype(t2.getVal())>;
+		}
+
 }
 #endif
