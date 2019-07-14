@@ -4,7 +4,42 @@
 #include <cmath>
 #include <tuple>
 #include <initializer_list>
+#include <utility>
+
 namespace TF {
+
+
+
+	template < typename...Args>
+		constexpr bool areConstant(Args...) {
+			return (isConstant_v<Args>&&...);
+		}
+
+
+	template <std::size_t I, typename T>
+		struct indexed {
+			using type = T;
+		};
+
+	template <typename Is, typename ...Ts>
+		struct indexer;
+
+	template <std::size_t ...Is, typename ...Ts>
+		struct indexer<std::index_sequence<Is...>, Ts...>
+		: indexed<Is, Ts>...
+		{ };
+
+	template <std::size_t I, typename T>
+		static indexed<I, T> select(indexed<I, T>);
+
+	template <std::size_t I, typename ...Ts>
+		using nth_element = typename decltype(select<I>(
+					indexer<std::index_sequence_for<Ts...>, Ts...>{}
+					))::type;
+
+
+
+
 
 	template <class V>
 		constexpr bool isSame(V v);
@@ -27,7 +62,7 @@ namespace TF {
 
 			constexpr static size_t length = size;
 			private:
-				T data[size];
+			T data[size];
 		};
 
 	template <typename...Args>
@@ -49,6 +84,8 @@ namespace TF {
 
 
 		};
+
+
 
 	template <typename...Args>
 		struct ConstVector {
@@ -169,6 +206,27 @@ namespace TF {
 			return {};
 		}
 
+
+	template <typename...Args1, typename...Args2>
+		constexpr auto vecConcat(Vector<Args1...>, Vector<Args2...>) {
+			return Vector<Args1..., Args2...>{};
+		}
+
+	template <typename...Args1, typename...Args2>
+		constexpr auto vecConcat(ConstVector<Args1...>, Vector<Args2...>) {
+			return Vector<Args1..., Args2...>{};
+		}
+
+	template <typename...Args1, typename...Args2>
+		constexpr auto vecConcat(Vector<Args1...>, ConstVector<Args2...>) {
+			return Vector<Args1..., Args2...>{};
+		}
+
+	template <typename...Args1, typename...Args2>
+		constexpr auto vecConcat(ConstVector<Args1...>, ConstVector<Args2...>) {
+			return ConstVector<Args1..., Args2...>{};
+		}
+
 	template <class T, typename...Args>
 		constexpr T end(Vector<T>) {
 			return {};
@@ -189,18 +247,16 @@ namespace TF {
 			return end(tail(v));
 		}
 
-	template <class V>
-		constexpr size_t vecLength(V v) {
-			return 1+vecLength(tail(v));
+	template <typename...Args>
+		constexpr size_t vecLength(Vector<Args...>) {
+			return sizeof...(Args);
 		}
 
-	constexpr size_t vecLength(Vector<>) {
-		return 0;
-	}
+	template <typename...Args>
+		constexpr size_t vecLength(ConstVector<Args...>) {
+			return sizeof...(Args);
+		}
 
-	constexpr size_t vecLength(ConstVector<>) {
-		return 0;
-	}
 
 
 	template <class T, class E>
@@ -213,16 +269,29 @@ namespace TF {
 			}
 		}
 
-	template <unsigned int n, class V>
-		constexpr auto get(V v) {
-			if constexpr(n == 0) {
-				return head(v);
-			}
-			else {
-				return get<n-1>(tail(v));
-			}
+	/*
+	   template <unsigned int n, class V>
+	   constexpr auto get(V v) {
+	   if constexpr(n == 0) {
+	   return head(v);
+	   }
+	   else {
+	   return get<n-1>(tail(v));
+	   }
 
+	   }
+	   */
+
+	template <std::size_t n, typename...Args>
+		constexpr nth_element<n, Args...> get(Vector<Args...>) {
+			return {};
 		}
+
+	template <std::size_t n, typename...Args>
+		constexpr nth_element<n, Args...> get(ConstVector<Args...>) {
+			return {};
+		}
+
 
 	template <class V>
 		constexpr auto empty(V v) {
@@ -234,9 +303,11 @@ namespace TF {
 			}
 		}
 
-	template <unsigned int n, class V>
+	/*
+
+	template <int n, class V>
 		constexpr auto first(V v) {
-			if constexpr(n == 0) {
+			if constexpr(n <= 0) {
 				return empty(v);
 			}
 			else if constexpr(n == 1) {
@@ -257,6 +328,59 @@ namespace TF {
 			}
 
 		}
+		*/
+
+	template <typename...Args, std::size_t...indices>
+		constexpr auto slice(Vector<Args...> v, std::index_sequence<indices...>) {
+			return Vector<decltype(get<indices>(v))...>{};
+		}
+
+	template <typename...Args, std::size_t...indices>
+		constexpr auto slice(ConstVector<Args...> v, std::index_sequence<indices...>) {
+			return ConstVector<decltype(get<indices>(v))...>{};
+		}
+
+	template <int n, class V>
+		constexpr auto first(V v) {
+			return slice(v, std::make_index_sequence<n>());
+		}
+
+
+	template <std::size_t n, typename = std::make_index_sequence<n>>
+		struct after_n_impl;
+
+	template <typename T>
+		struct wrapper { using type = T; };
+
+	template <std::size_t n, std::size_t ...ignore>
+		struct after_n_impl<n, std::index_sequence<ignore...>> {
+			template <typename...Tns>
+				static Vector<Tns...> f(decltype((void*)ignore)..., wrapper<Tns>*...);
+		};
+
+	template <std::size_t n, typename = std::make_index_sequence<n>>
+		struct const_after_n_impl;
+
+	template <std::size_t n, std::size_t ...ignore>
+		struct const_after_n_impl<n, std::index_sequence<ignore...>> {
+			template <typename...Tns>
+				static ConstVector<Tns...> f(decltype((void*)ignore)..., wrapper<Tns>*...);
+		};
+
+
+
+
+	template <int n, typename...Args>
+		constexpr decltype(after_n_impl<n>::f(static_cast<wrapper<Args>*>(0)...)) after(Vector<Args...>) {
+			return {};
+		}
+
+	template <int n, typename...Args>
+		constexpr decltype(const_after_n_impl<n>::f(static_cast<wrapper<Args>*>(0)...)) after(ConstVector<Args...>) {
+			return {};
+		}
+
+	/*
 
 	template <int n, class V>
 		constexpr auto after(V v) {
@@ -267,6 +391,7 @@ namespace TF {
 				return after<n-1>(tail(v));
 			}
 		}
+		*/
 
 	template <unsigned int n, class V>
 		constexpr auto last(V v) {
@@ -275,6 +400,10 @@ namespace TF {
 		}
 
 
+	template <unsigned int n, class V, class T>
+		constexpr auto set(V v, T t) {
+			return vecConcat(first<n>(v), vecConcat(makeVector(t), after<n+1>(v)));
+		}
 
 
 	template <class T, class E>
@@ -421,19 +550,36 @@ namespace TF {
 			}
 		}
 
-	template <class T, class E>
-		constexpr auto map(T t, E e) {
-			if constexpr(isEmpty_v<E> && isConstant_v<E>) {
-				return ConstVector<>{};
-			}
-			else if constexpr(isEmpty_v<E>) {
-				return Vector<>{};
-			}
-			else if constexpr(isConstant_v<E>) {
-				return vecConcat(ConstVector<decltype(t(head(e)))>{}, map(t, tail(e)));
+	/*
+	   template <class T, class E>
+	   constexpr auto map(T t, E e) {
+	   if constexpr(isEmpty_v<E> && isConstant_v<E>) {
+	   return ConstVector<>{};
+	   }
+	   else if constexpr(isEmpty_v<E>) {
+	   return Vector<>{};
+	   }
+	   else if constexpr(isConstant_v<E>) {
+	   return vecConcat(ConstVector<decltype(t(head(e)))>{}, map(t, tail(e)));
+	   }
+	   else {
+	   return vecConcat(Vector<decltype(t(head(e)))>{}, map(t, tail(e)));
+	   }
+	   }
+	   */
+
+	template <class Op, typename...Args>
+		constexpr auto map(Op op, Vector<Args...>) {
+			return Vector<decltype(op(Args{}))...>{};
+		}
+
+	template <class Op, typename...Args>
+		constexpr auto map(Op op, ConstVector<Args...>) {
+			if constexpr(areConstant(op(Args{})...)) {
+				return ConstVector<decltype(op(Args{}))...>{};
 			}
 			else {
-				return vecConcat(Vector<decltype(t(head(e)))>{}, map(t, tail(e)));
+				return Vector<decltype(op(Args{}))...>{};
 			}
 		}
 
@@ -528,7 +674,7 @@ namespace TF {
 		}
 
 	template <class T>
-	struct FuncApply;
+		struct FuncApply;
 
 	template <class T, class V> 
 		constexpr auto funcApply(T t, V v) {
@@ -543,14 +689,14 @@ namespace TF {
 	template <class T>
 		struct FuncApply {
 			template <class V>
-			constexpr auto operator()(V v) {
-				if constexpr(!isVector_v<V>) {
-					return func<T, V>{};
+				constexpr auto operator()(V v) {
+					if constexpr(!isVector_v<V>) {
+						return func<T, V>{};
+					}
+					else {
+						return map(FuncApply<T>{}, v);
+					}
 				}
-				else {
-					return map(FuncApply<T>{}, v);
-				}
-			}
 		};
 
 	template <class E, typename...Args>

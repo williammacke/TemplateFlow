@@ -61,6 +61,33 @@ namespace TF {
 				return Foreach(tail(vec), op(head(vec), init), op);
 			}
 		}
+
+	template <int i, int j>
+		constexpr auto range() {
+			if constexpr(i == j) { 
+				return ConstVector<>{};
+			}
+			else if constexpr (i < j) {
+				return vecConcat(ConstVector<Val<int, i>>{}, range<i+1, j>());
+			}
+			else {
+				return vecConcat(ConstVector<Val<int, i>>{}, range<i-1, j>());
+			}
+		}
+
+	template <int i, int j, int k>
+		constexpr auto range() {
+			if constexpr(k > 0 && i < j) {
+				return vecConcat(ConstVector<Val<int, i>>{}, range<i+k, j, k>());
+			}
+			else if constexpr(k < 0 && i > j) {
+				return vecConcat(ConstVector<Val<int, i>>{}, range<i+k, j, k>());
+			}
+			else {
+				return ConstVector<>{};
+			}
+		}
+
 }
 
 #endif

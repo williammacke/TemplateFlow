@@ -90,6 +90,39 @@ int main() {
 	constexpr auto blargh4 = blargh3.getVal();
 	std::cout << blargh4[0] << std::endl;
 
+	constexpr auto primesInit = map([](auto i) {
+			if constexpr(i.getVal() == 0 || i.getVal() == 1) {
+				return Val<bool, false>{};
+			}
+			else {
+				return Val<bool, true>{};
+			}
+			},
+			range<0,200>());
+
+	constexpr auto primes = For<0, 200>(primesInit, [](auto val, auto primes) {
+				if constexpr(!get<val.getVal()>(primes).getVal()) {
+					return primes;
+				}
+				else {
+					return For<val.getVal()+val.getVal(), 200, val.getVal()>(primes, [](auto i, auto p) {
+								return set<i.getVal()>(p, Val<bool, false>{});
+							});
+				}
+			}).getVal();
+
+	for (int i = 0; i < primes.length; i++) {
+		if (primes[i]) {
+			std::cout << i << " ";
+		}
+	}
+	std::cout << std::endl;
+
+
+
+	auto testVec1 = makeValVector<int, 1,2,3>();
+	auto testVec2 = makeValVector<int, 4,5,6>();
+	auto testVec3 = vecConcat(testVec1, testVec2);
 
 
 
