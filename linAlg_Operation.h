@@ -9,7 +9,6 @@
 namespace TF {
 
 
-
 	template < typename...Args>
 		constexpr bool areConstant(Args...) {
 			return (isConstant_v<Args>&&...);
@@ -110,6 +109,18 @@ namespace TF {
 		};
 
 
+	template <typename...Args>
+		constexpr auto makeVector(Args...args) {
+			if constexpr(areConstant(args...)) {
+				return ConstVector<Args...>{};
+			}
+			else {
+				return Vector<Args...>{};
+			}
+		}
+
+		/*
+
 	constexpr auto makeVector() {
 		return ConstVector<>{};
 	}
@@ -128,6 +139,19 @@ namespace TF {
 	template <class T, typename...Args>
 		constexpr auto makeVector(T t, Args...args) {
 			return vecConcat(makeVector(t), makeVector(args...));  
+		}
+		*/
+
+
+
+	template <class T, typename...Args>
+		constexpr bool contains(T t, Vector<Args...>) {
+			return (std::is_same_v<T, Args> || ...);
+		}
+
+	template <class T, typename...Args>
+		constexpr bool contains(T t, ConstVector<Args...>) {
+			return (std::is_same_v<T, Args> || ...);
 		}
 
 	template <class T, typename...Args>
@@ -227,6 +251,7 @@ namespace TF {
 			return ConstVector<Args1..., Args2...>{};
 		}
 
+	/*
 	template <class T, typename...Args>
 		constexpr T end(Vector<T>) {
 			return {};
@@ -243,9 +268,10 @@ namespace TF {
 		}
 
 	template <class T, typename...Args>
-		constexpr auto end(ConstVector<T, Args...> v) -> decltype(end(v)) {
+		constexpr auto end(ConstVector<T, Args...> v) -> decltype(end(tail(v))) {
 			return end(tail(v));
 		}
+		*/
 
 	template <typename...Args>
 		constexpr size_t vecLength(Vector<Args...>) {
@@ -259,14 +285,9 @@ namespace TF {
 
 
 
-	template <class T, class E>
-		constexpr auto dot(T t, E e) {
-			if constexpr(isConstant_v<E> && isConstant_v<T>) {
-				return ConstAddition<ConstMultiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))>{};
-			}
-			else {
-				return Addition<Multiplication<decltype(head(t)), decltype(head(e))>, decltype(dot(tail(t), tail(e)))>{};
-			}
+	template <template<typename...> class V1, template <typename...> class V2, typename...Args1, typename...Args2>
+		constexpr auto dot(V1<Args1...>, V2<Args2...>) {
+				return ((Args1{}*Args2{})+...);
 		}
 
 	/*
@@ -370,6 +391,7 @@ namespace TF {
 
 
 
+
 	template <int n, typename...Args>
 		constexpr decltype(after_n_impl<n>::f(static_cast<wrapper<Args>*>(0)...)) after(Vector<Args...>) {
 			return {};
@@ -378,6 +400,11 @@ namespace TF {
 	template <int n, typename...Args>
 		constexpr decltype(const_after_n_impl<n>::f(static_cast<wrapper<Args>*>(0)...)) after(ConstVector<Args...>) {
 			return {};
+		}
+
+	template <class V>
+		constexpr auto end(V v) {
+			return head(after<vecLength(v)-1>(v));
 		}
 
 	/*
@@ -406,22 +433,6 @@ namespace TF {
 		}
 
 
-	template <class T, class E>
-		constexpr auto dot(Vector<T> t, Vector<E> e) -> Multiplication<T, E> {
-			return {};
-		}
-
-	template <class T, class E>
-		constexpr auto dot(ConstVector<T> t, ConstVector<E> e) -> ConstMultiplication<T, E> {
-			return {};
-		}
-
-
-	template <class T>
-		struct isVector {
-			constexpr static bool value = false;
-		};
-
 	template <typename...Args>
 		struct isVector<Vector<Args...>> {
 			constexpr static bool value = true;
@@ -434,6 +445,12 @@ namespace TF {
 
 	template <class T>
 		constexpr bool isVector_v = isVector<T>::value;
+
+
+	template <class V1, class V2, typename=std::enable_if_t<isVector_v<V1> && isVector_v<V2>>, int=0>
+		constexpr auto operator+(V1 v1, V2 v2) {
+			return vecConcat(v1, v2);
+		}
 
 	template <class T>
 		struct isMatrix {
@@ -702,7 +719,8 @@ namespace TF {
 	template <class E, typename...Args>
 		constexpr auto gradient(E e, Vector<Args...> v) {
 			if constexpr(isVector_v<decltype(head(v))>) {
-				return vecConcat(makeVector(gradient(head(v))), gradient(tail(v)));
+				//return vecConcat(makeVector(gradient(head(v))), gradient(tail(v)));
+				return makeVector(gradient(Args{})...);
 			}
 			else {
 				return makeVector(e.getDerivative(Args{})...);
@@ -712,10 +730,43 @@ namespace TF {
 	template <class E, typename...Args>
 		constexpr auto gradient(E e, ConstVector<Args...> v) {
 			if constexpr(isVector_v<decltype(head(v))>) {
-				return vecConcat(makeVector(gradient(head(v))), gradient(tail(v)));
+				//return vecConcat(makeVector(gradient(head(v))), gradient(tail(v)));
+				return makeVector(gradient(Args{})...);
 			}
 			else {
 				return makeVector(e.getDerivative(Args{})...);
+			}
+		}
+
+
+	template <class Op, typename...Args>
+		constexpr auto foldl(Op op, Vector<Args...>) {
+			return (op(Args{})+...);
+		}
+
+	template <class T, class Cond>
+		constexpr auto condWrapper(Cond cond, T t) {
+			if constexpr(cond(T{})) {
+				if constexpr(isConstant_v<T>) {
+					return ConstVector<T>{};
+				}
+				else {
+					return Vector<T>{};
+				}
+			}
+			else {
+				return ConstVector<>{};
+			}
+		}
+
+
+	template <template<typename...>class V1, template<typename...> class V2,typename...Args1, typename...Args2>
+		constexpr auto vecMinus(V1<Args1...>, V2<Args2...> v2) {
+			if constexpr(isEmpty_v<V1<Args1...>>) {
+				return ConstVector<>{};
+			}
+			else {
+				return (condWrapper([v2](auto i) { return !contains(i, v2);}, Args1{})+...);
 			}
 		}
 

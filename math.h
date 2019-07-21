@@ -73,6 +73,62 @@ namespace TF {
 		 constexpr double pow(double base, double i) {
 			return exp(log(base)*i);
 		}
+
+		 struct rational {
+			 long num;
+			 long dem;
+		 };
+
+		 constexpr auto float2rational(float num, long maxden=1000) {
+			 long m[2][2]{1,0,0,1};
+			 long ai{0};
+			 float y { num};
+			 while (m[1][0] * (ai = (long)y) + m[1][1] <= maxden) {
+				 long t{m[0][0]*ai+m[0][1]};
+				 m[0][1] = m[0][0];
+				 m[0][0] = t;
+				 t = m[1][0]*ai+m[1][1];
+				 m[1][1] = m[1][0];
+				 m[1][0] = t;
+				 if (y==(float)ai) break;
+				 y = 1/(y - (float)ai);
+				 if (y>(float)0x7FFFFFFF) break;
+			 }
+			 double err1 { num-((double)m[0][0]/m[1][0])};
+			 double err2 {num - ((double) (m[0][0]*ai+m[0][1]) / (m[1][0]*ai+m[1][1]))};
+			 if (err2 < err1) {
+				 return rational{m[0][0]*ai+m[0][1], m[1][0]*ai+m[1][1]};
+			 }
+			 else {
+				 return rational{m[0][0], m[1][0]};
+			 }
+
+		 }
+
+		 constexpr auto double2rational(double num, long maxden=1000) {
+			 long m[2][2]{1,0,0,1};
+			 long ai{0};
+			 double y { num};
+			 while (m[1][0] * (ai = (long)y) + m[1][1] <= maxden) {
+				 long t{m[0][0]*ai+m[0][1]};
+				 m[0][1] = m[0][0];
+				 m[0][0] = t;
+				 t = m[1][0]*ai+m[1][1];
+				 m[1][1] = m[1][0];
+				 m[1][0] = t;
+				 if (y==(double)ai) break;
+				 y = 1/(y - (double)ai);
+				 if (y>(double)0x7FFFFFFF) break;
+			 }
+			 double err1 { num-((double)m[0][0]/m[1][0])};
+			 double err2 {num - ((double) (m[0][0]*ai+m[0][1]) / (m[1][0]*ai+m[1][1]))};
+			 if (err2 < err1) {
+				 return rational{m[0][0]*ai+m[0][1], m[1][0]*ai+m[1][1]};
+			 }
+			 else {
+				 return rational{m[0][0], m[1][0]};
+			 }
+		 }
 	}
 }
 
