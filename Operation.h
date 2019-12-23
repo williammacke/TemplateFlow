@@ -1,514 +1,169 @@
 #ifndef OPERATION_H_
 #define OPERATION_H_
+#include "Variable.h"
 #include <memory>
 #include <type_traits>
 #include <cmath>
+#include <unordered_map>
+#include <string>
 #include "math.h"
+#include "gcem/include/gcem.hpp"
 
 namespace TF {
 
-	template <class T>
-		struct isVector {
-			constexpr static bool value = false;
-		};
-
-	template <class T, T val>
-		struct Val {
-			constexpr static T getVal() {
-				return val;
-			}
-
-			
-			template <class E>
-				constexpr static Val<T, T{}> getDerivative(E var) {
-					return {};
-				}
-		};
-
-	template <class T>
-		struct isConstant {
-			constexpr static bool value = false;
-		};
-
-	template <class T, T val>
-		struct isConstant<Val<T, val>> {
-			constexpr static bool value = true;
-		};
-
-	template <class T>
-		constexpr bool isConstant_v = isConstant<T>::value;
-
-
-	template <long num, long dem>
-		struct Double {
-			static constexpr double val = static_cast<double>(num)/dem;
-		};
-
-
-	template <long num, long dem>
-		struct Float {
-			constexpr static float val = static_cast<float>(num)/dem;
-		};
-
-	template <class T>
-		struct isDouble {
-			constexpr static bool value = false;
-		};
-
-	template <long num, long dem>
-		struct isDouble<Double<num,dem>> {
-			constexpr static bool value = true;
-		};
-
-	template <class T>
-		constexpr bool isDouble_v = isDouble<T>::value;
-
-
-	template <class T>
-		struct isFloat {
-			constexpr static bool value = false;
-		};
-
-	template <long num, long dem>
-		struct isFloat<Float<num, dem>> {
-			constexpr static bool value = true;
-		};
-
-
-	template <class T>
-		constexpr bool isFloat_v = isFloat<T>::value;
-
-
-	template <class T>
-		struct FVal;
-
-	template <long num, long dem>
-		struct FVal<Float<num,dem>> {
-			constexpr static float getVal() {
-				return Float<num,dem>::val;
-			}
-
-			template <class V>
-			constexpr static Float<0, 1> getDerivative(V var) {
-				return {};
-			}
-
-
-		};
-
-	template <long num, long dem>
-		struct isConstant<FVal<Float<num, dem>>> {
-			static constexpr bool value = true;
-		};
-	template<long i, long j>
-		struct FVal<Double<i, j>> {
-			static constexpr double getVal() {
-				return Double<i,j>::val;
-			}
-
-			template <class V>
-			constexpr static Double<0, 1> getDerivative(V var) {
-				return {};
-			}
-		};
-
-	template <long i, long j>
-		struct isConstant<FVal<Double<i, j>>> {
-			constexpr static bool value = true;
-		};
-		
-
-
-
-	template <class T, T* var>
-		struct Var {
-			static T getVal() {
-				return *var;
-			}
-
-			template <class E>
-				constexpr static Val<T, T{}> getDerivative(E v) {
-					return {};
-				}
-
-			constexpr static Val<T, 1> getDerivative(Var<T, var> v) {
-				return {};
-			}
-
-			template <class E>
-			static void addVal(E val) {
-				*var += val;
-			}
-		};
-
-	template <float *var>
-		struct Var<float, var> {
-			static float getVal() {
-				return *var;
-			}
-
-			template <class E>
-				constexpr static FVal<Float<0,1>> getDerivative(E v) {
-					return {};
-				}
-
-			constexpr static FVal<Float<1,1>> getDerivative(Var<float, var> v) {
-				return {};
-			}
-
-			template <class E>
-				static void addVal(E val) {
-					*var += val;
-				}
-		};
-
-
-	template <class T>
-		constexpr auto isOperation(T t) -> decltype(&T::getVal,T::getDerivative(Var<int, nullptr>{}),std::true_type{}) {
-			return {};
-		}
-
-	constexpr auto isOperation(...) -> std::false_type {
-		return {};
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator==(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return lhs2.getVal() == rhs2.getVal();
 	}
 
-	template <class T, T* var>
-		struct Placeholder {
-			static T getVal() {
-				return *var;
-			}
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator!=(const T& lhs, const E& rhs) {
+		return !(lhs == rhs);
+	}
 
-			template <class E>
-				constexpr static Val<T, T{}> getDerivative(E v) {
-					return {};
-				}
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator<(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return lhs.getVal() < rhs.getVal();
+	}
 
-			template <class E> 
-				static void setVal(E val) {
-					*var = val;
-				}
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator<=(const T& lhs, const E& rhs) {
+		return lhs == rhs || lhs < rhs;
+	}
+
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator>(const T& lhs, const E& rhs) {
+		return !(lhs <= rhs);
+	}
+
+	template <class T, class E, typename=std::enable_if_t<is_operation_v<T> || is_operation_v<E>>>
+	constexpr bool operator>=(const T& lhs, const E& rhs) {
+		return !(lhs < rhs);
+	}
+
+	template <class T, class E, typename=std::enable_if_t<(is_value_v<T> && (is_value_v<E> || !is_operation_v<E>)) || 
+		(is_value_v<E> && (is_value_v<T> || !is_operation_v<T>))>>
+	constexpr auto operator+(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return Value<decltype(lhs2.val+rhs2.val)>(lhs2.val+rhs2.val); 
+	}
+
+	template <class T, class E, typename=std::enable_if_t<(is_value_v<T> && (is_value_v<E> || !is_operation_v<E>)) || 
+		(is_value_v<E> && (is_value_v<T> || !is_operation_v<T>))>>
+	constexpr auto operator-(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return Value<decltype(lhs2.val-rhs2.val)>(lhs2.val-rhs2.val); 
+	}
+
+	template <class T, class E, typename=std::enable_if_t<(is_value_v<T> && (is_value_v<E> || !is_operation_v<E>)) || 
+		(is_value_v<E> && (is_value_v<T> || !is_operation_v<T>))>>
+	constexpr auto operator*(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return Value<decltype(lhs2.getVal()*rhs2.getVal())>(lhs2.getVal()*rhs2.getVal()); 
+	}
+
+	template <class T, class E, typename=std::enable_if_t<(is_value_v<T> && (is_value_v<E> || !is_operation_v<E>)) || 
+		(is_value_v<E> && (is_value_v<T> || !is_operation_v<T>))>>
+	constexpr auto operator/(const T& lhs, const E& rhs) {
+		auto lhs2 = value(lhs);
+		auto rhs2 = value(rhs);
+		return Value<decltype(lhs2.getVal()/rhs2.getVal())>(lhs2.getVal()/rhs2.getVal()); 
+	}
+
+	template <class T, class E, typename=std::enable_if_t<(is_value_v<T> && (is_value_v<E> || !is_operation_v<E>)) ||
+		(is_value_v<E> && (is_value_v<T> || !is_operation_v<T>))>>
+		constexpr auto operator^(const T& lhs, const E& rhs) {
+			auto lhs2 = value(lhs);
+			auto rhs2 = value(rhs);
+			return Value<decltype(gcem::pow(lhs2.getVal(), rhs2.getVal()))>(gcem::pow(lhs2.getVal(), rhs2.getVal()));
+		}
+
+
+
+
+	template <class T, class E>
+		struct Addition;
+
+	template <class T, class E>
+		struct is_operation<Addition<T, E>> {
+			static constexpr bool value = true;
 		};
 
-	template <float* var>
-		struct Placeholder<float, var> {
-			static float getVal() {
-				return *var;
-			}
-
-			template <class V>
-				constexpr static FVal<Float<0, 1>> getDerivative(V v) {
-					return {};
-				}
-
-			template <class E>
-				static void setVal(E val) {
-					*var = val;
-				}
-		};
-
-	template <double* var>
-		struct Placeholder<double, var> {
-			static double getVal() {
-				return *var;
-			}
-
-			template <class V>
-				constexpr static FVal<Double<0, 1>> getDerivative(V v) {
-					return {};
-				}
-			template <class E>
-				static void setVal(E val) {
-					*var = val;
-				}
-		};
+	template <class T, class E, typename=std::enable_if_t<(is_operation_v<T> && !is_value_v<T>) || (is_operation_v<E> && !is_value_v<T>)>, int=0>
+		constexpr auto operator+(const T& lhs, const E& rhs) {
+			auto lhs2 = value(lhs);
+			auto rhs2 = value(rhs);
+			return Addition<decltype(lhs2), decltype(rhs2)>(lhs2, rhs2);
+		}
 
 	template <class T, class E>
 		struct Addition {
-			static auto getVal() -> decltype(T::getVal() + E::getVal()) {
-				return T::getVal()+E::getVal();
+			T lhs;
+			E rhs;
+
+			constexpr Addition(const T& v1, const E& v2) : lhs(v1), rhs(v2) { }
+
+			decltype(lhs.getVal()+rhs.getVal()) getVal() const {
+				return lhs.getVal() + rhs.getVal();
+			}
+
+			void initVars() {
+				lhs.initVars();
+				rhs.initVars();
 			}
 
 			template <class V>
-			constexpr static auto getDerivative(V var) -> Addition<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
-				return {};
+				constexpr auto getDerivative(const V& var) {
+					return lhs.getDerivative(var) + rhs.getDerivative(var);
+				}
+			operator decltype(lhs.getVal()+rhs.getVal())() const {
+				return lhs.getVal() + rhs.getVal();
 			}
-
 		};
 
+	template <class T, class E>
+		struct Subtraction;
 
-	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{}) && !isVector<T>::value && !isVector<E>::value>>
-		constexpr auto operator+(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = T::getVal() + E::getVal();
-				if constexpr(std::is_floating_point_v<decltype(val)>) {
-					if constexpr(std::is_same_v<float, decltype(val)>) {
-						constexpr auto rat = math::float2rational(val);
-						return FVal<Float<rat.num, rat.dem>>{};
-					}
-					else {
-						constexpr auto rat = math::double2rational(val);
-						return FVal<Double<rat.num, rat.dem>>{};
-					}
-				}
-				else {
-					return Val<decltype(val), val>{};
-				}
-			}
-			else {
-				return Addition<T, E>{};
-			}
+	template <class T, class E>
+		struct is_operation<Subtraction<T, E>> {
+			constexpr static bool value = true;
+		};
+
+	template <class T, class E, typename=std::enable_if_t<(is_operation_v<T> && !is_value_v<T>) || (is_operation_v<E> && !is_value_v<E>)>, int=0>
+		constexpr auto operator-(const T& lhs, const E& rhs) {
+			auto lhs2 = value(lhs);
+			auto rhs2 = value(rhs);
+			return Subtraction<decltype(lhs2), decltype(rhs2)>(lhs2, rhs2);
 		}
 
 	template <class T, class E>
 		struct Subtraction {
-			static auto getVal() -> decltype(T::getVal() - E::getVal()) {
-				return T::getVal() - E::getVal();
+			T lhs;
+			E rhs;
+			constexpr Subtraction(const T& v1, const E& v2) : lhs(v1), rhs(v2) { }
+
+			decltype(lhs.getVal() - rhs.getVal()) getVal() const {
+				return lhs.getVal() - rhs.getVal();
 			}
 
 			template <class V>
-				constexpr static auto getDerivative(V var) -> Subtraction<decltype(T::getDerivative(var)), decltype(E::getDerivative(var))> {
-					return {};
+				constexpr auto getDerivative(const V& var) {
+					return lhs.getDerivative(var) - rhs.getDerivative(var);
 				}
-		};
 
-
-	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		constexpr auto operator-(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = T::getVal()-E::getVal();
-				if constexpr(std::is_floating_point_v<decltype(val)>) {
-					if constexpr(std::is_same_v<float, decltype(val)>) {
-						constexpr auto rat = math::float2rational(val);
-						return FVal<Float<rat.num, rat.dem>>{};
-					}
-					else {
-						constexpr auto rat = math::double2rational(val);
-						return FVal<Double<rat.num, rat.dem>>{};
-					}
-				}
-				else {
-					return Val<decltype(val), val>{};
-				}
-			}
-			else {
-				return Subtraction<T,E>{};
-			}
-		}
-
-	template <class T, class E>
-		struct Multiplication {
-			static auto getVal() -> decltype(T::getVal()*E::getVal()) {
-				return T::getVal() * E::getVal();
-			}
-
-			template <class V>
-				constexpr static auto getDerivative(V var) -> Addition<Multiplication<T, decltype(E::getDerivative(var))>,
-					    					Multiplication<decltype(T::getDerivative(var)), E>> {
-											return {};
-										}
-		};
-
-
-	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		constexpr auto operator*(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = T::getVal()*E::getVal();
-				if constexpr(std::is_floating_point_v<decltype(val)>) {
-					if constexpr(std::is_same_v<float, decltype(val)>) {
-						constexpr auto rat = math::float2rational(val);
-						return FVal<Float<rat.num, rat.dem>>{};
-					}
-					else {
-						constexpr auto rat = math::double2rational(val);
-						return FVal<Double<rat.num, rat.dem>>{};
-					}
-				}
-				else {
-					return Val<decltype(val), val>{};
-				}
-			}
-			else {
-				return Multiplication<T, E>{};
-			}
-		}
-
-	template <class T, class E>
-		struct exp;
-
-	template <class T, class E>
-		struct Division {
-			static auto getVal() -> decltype(T::getVal()/E::getVal()) {
-				return E::getVal()==0?0:T::getVal()/E::getVal();
-			}
-
-			template <class V>
-			constexpr static auto getDerivative(V var) -> Division<
-								Subtraction<Multiplication<E, decltype(T::getDerivative(var))>,
-										Multiplication<decltype(E::getDerivative(var)), T>>,
-										exp<E, Val<int, 2>>> {
-											return {};
-										}
-		};
-
-
-
-
-	template <class T>
-		struct ln_imp;
-	template <class T, class E>
-		struct log_imp;
-
-	template <class T, class E>
-		struct exp {
-			static auto getVal() -> decltype(pow(T::getVal(), E::getVal())) {
-				return pow(T::getVal(), E::getVal());
-			}
-
-			template <class V>
-			constexpr static auto getDerivative(V var) -> Multiplication<exp<T,E>, Addition<
-										Multiplication<decltype(E::getDerivative(var)), ln_imp<T>>,
-										Multiplication<decltype(T::getDerivative(var)), Division<E, T>>>> {
-										}
-		};
-
-
-
-	template <class T>
-		struct ln_imp {
-			static double getVal() {
-				return T::getVal()<=0?0:std::log(T::getVal());
-			}
-
-			template <class V>
-			constexpr static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, T> {
-				return {};
+			operator decltype(lhs.getVal() - rhs.getVal()) () {
+				return lhs.getVal() - rhs.getVal();
 			}
 		};
 
-	template <class T>
-		constexpr auto ln(T t) {
-			if constexpr(isConstant_v<T>) {
-				constexpr auto val = math::log(T::getVal());
-				constexpr auto rat = math::double2rational(val);
-				return FVal<Double<rat.num, rat.dem>>{};
-			}
-			else {
-				return ln_imp<T>{};
-			}
-		};
-
-	template <class T, class E>
-		struct log_imp {
-			static auto getVal() -> decltype(std::log(E::getVal())/std::log(T::getVal())) {
-				return std::log(E::getVal())/std::log(T::getValI());
-			}
-
-			template <class V>
-			constexpr static auto getDerivative(V var) -> Division<FVal<Float<1,1>>, Multiplication<E, ln_imp<T>>> {
-				return {};
-			}
-		};
-
-	template <class T, class E>
-		constexpr auto log(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = math::log(E::getVal())/math::log(T::getVal());
-				constexpr auto rat = math::double2rational(val);
-				return FVal<Double<rat.num, rat.dem>>{};
-			}
-			else {
-				return log_imp<T, E>{};
-			}
-		}
-
-
-
-	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		constexpr auto operator/(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = T::getVal()/E::getVal();
-				if constexpr(std::is_floating_point_v<decltype(val)>) {
-					if constexpr(std::is_same_v<float, decltype(val)>) {
-						constexpr auto rat = math::float2rational(val);
-						return FVal<Float<rat.num, rat.dem>>{};
-					}
-					else {
-						constexpr auto rat = math::double2rational(val);
-						return FVal<Double<rat.num, rat.dem>>{};
-					}
-				}
-				else {
-					return Val<decltype(val), val>{};
-				}
-			}
-			else {
-				return Division<T, E>{};
-			}
-		}
-	template <class T, class E, typename=std::enable_if_t<isOperation(T{}) && isOperation(E{})>>
-		constexpr auto operator^(T t, E e) {
-			if constexpr(isConstant_v<T> && isConstant_v<E>) {
-				constexpr auto val = math::pow(T::getVal(), E::getVal());
-				constexpr auto rat = math::double2rational(val);
-				return FVal<Double<rat.num, rat.dem>>{};
-			}
-			else { 
-				return exp<T, E>{};
-			}
-		}
-
-	template <class T, class E>
-		struct func {
-			static auto getVal() -> decltype(T{}(E::getVal())) {
-				return T{}(E::getVal());
-			}
-
-			template <class V>
-			constexpr static auto getDerivative(V var) -> Multiplication<func<decltype(T::getDerivative(var)), E>, decltype(E::getDerivative(var))> {
-				return {};
-			}
-		};
-
-	template <class T, int=(T{}({}),0)>
-		constexpr bool is_constexpr(T t) {
-			return true;
-		}
-
-	template <class T, int i =1, int=(T{}({},{}),0)>
-		constexpr bool is_constexpr(T t) {
-			return true;
-		}
-
-
-	constexpr bool is_constexpr(...) {
-		return false;
-	}
-
-
-	template <class Op, class T>
-		constexpr auto apply(Op op, T t) {
-			if constexpr(is_constexpr(Op{}) && isConstant_v<T>) {
-				constexpr auto val = op(T::getVal());
-				if constexpr(std::is_floating_point_v<decltype(val)>) {
-					if constexpr(std::is_same_v<float, decltype(val)>) {
-						constexpr auto rat = math::float2rational(val);
-						return FVal<Float<rat.num, rat.dem>>{};
-					}
-					else {
-						constexpr auto rat = math::double2rational(val);
-						return FVal<Double<rat.num, rat.dem>>{};
-					}
-				}
-				else {
-					return func<Op, T>{};
-				}
-			}
-		}
-
-	template <class T1, class T2>
-		constexpr bool isSame(T1 t1, T2 t2) {
-			return std::is_same_v<decltype(t1.getVal()), decltype(t2.getVal())>;
-		}
 
 }
+
 #endif

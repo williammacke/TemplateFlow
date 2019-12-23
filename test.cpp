@@ -2,7 +2,7 @@
  */
 #include "Operation.h"
 #include "Optimization.h"
-#include "linAlg_Operation.h"
+#include "lists.h"
 #include <iostream>
 #include <vector>
 #include <tuple>
@@ -10,28 +10,24 @@
 #include <cmath>
 #include "Iteration.h"
 
+void test(int i) { }
+
 
 int main() {
 	using namespace TF;
-
-	constexpr auto y = Val<int, 5>{} / Val<long, 10>{};
-	constexpr auto val = y.getVal();
-
-	constexpr auto y2 = ln(Val<int, 3>{});
-	constexpr auto val2 = y2.getVal();
-
-	std::cout << val << std::endl;
-	std::cout << val2 << std::endl;
-
-	constexpr auto fib = For<1, 40>(makeVector(Val<long, 0>{}, Val<long, 1>{}), [](auto in, auto val) {
-			constexpr auto i = in.getVal();
-			return val+makeVector(get<i>(val)+get<i-1>(val));
-			}).getVal();
-
-	for (int i = 0; i < fib.length; i++) {
-		std::cout << fib[i] << " ";
-	}
-	std::cout << std::endl;
-
+	constexpr auto a = Variable("test"_tstr);
+	std::cout << a.getVal() << std::endl;
+	constexpr auto b = Value<int>(5);
+	constexpr auto c = b+5;
+	std::cout << (int) c << std::endl;
+	constexpr auto d = b+c;
+	std::cout << (int) d << std::endl;
+	constexpr auto e = a + d;
+	std::cout << (int) e << std::endl;
+	std::cout << a.getName() << std::endl;
+	a = 5;
+	std::cout << (int) e << std::endl;
+	test(a);
+	a = 5;
 	return 0;
 }
