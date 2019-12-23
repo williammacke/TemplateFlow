@@ -29,5 +29,9 @@ int main() {
 	std::cout << (int) e << std::endl;
 	test(a);
 	a = 5;
+	std::cout << e.getName() << std::endl;
+	std::cout << c.getName() << std::endl;
+	constexpr auto f = e-7;
+	std::cout << f.getName() << ": " << (float) f << std::endl;
 	return 0;
 }

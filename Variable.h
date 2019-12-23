@@ -5,6 +5,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <string>
+#include <sstream>
 #include "math.h"
 #include "gcem/include/gcem.hpp"
 
@@ -28,6 +29,12 @@ namespace TF {
 
 			constexpr operator T() const {
 				return val;
+			}
+
+			std::string getName() const {
+				std::stringstream s;
+				s << val;
+				return s.str();
 			}
 
 		};
@@ -107,7 +114,7 @@ namespace TF {
 					}
 				}
 
-			static const char* getName() {
+			static std::string getName() {
 				static char buffer[] = {name..., '\0'};
 				return buffer;
 			}
@@ -132,6 +139,14 @@ namespace TF {
 		constexpr auto Variable(t_string<name...>) {
 			return Var<T, name...>();
 		}
+
+	template <class T>
+		struct is_const {
+			constexpr static bool value = is_value_v<T> || !is_operation_v<T>;
+		};
+
+	template <class T>
+		constexpr bool is_const_v = is_const<T>::value;
 
 }
 
