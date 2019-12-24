@@ -9,29 +9,22 @@
 #include "math.h"
 #include <cmath>
 #include "Iteration.h"
+#include "linalg.h"
 
 void test(int i) { }
+
+constexpr auto test2() {
+	using namespace TF;
+	Tensor<float, 5> b;
+	b[1] = 1;
+	return b;
+}
 
 
 int main() {
 	using namespace TF;
-	constexpr auto a = Variable("test"_tstr);
-	std::cout << a.getVal() << std::endl;
-	constexpr auto b = Value<int>(5);
-	constexpr auto c = b+5;
-	std::cout << (int) c << std::endl;
-	constexpr auto d = b+c;
-	std::cout << (int) d << std::endl;
-	constexpr auto e = a + d;
-	std::cout << (int) e << std::endl;
-	std::cout << a.getName() << std::endl;
-	a = 5;
-	std::cout << (int) e << std::endl;
-	test(a);
-	a = 5;
-	std::cout << e.getName() << std::endl;
-	std::cout << c.getName() << std::endl;
-	constexpr auto f = e-7;
-	std::cout << f.getName() << ": " << (float) f << std::endl;
+	constexpr auto tester = test2();
+	std::cout << tester[0] << std::endl;
+	std::cout << tester[1] << std::endl;
 	return 0;
 }

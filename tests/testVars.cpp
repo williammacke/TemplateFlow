@@ -48,12 +48,16 @@ TEST(test_vars, all_test)
 	constexpr auto val = value(5);
 	constexpr auto var = Variable("var"_tstr);
 	constexpr auto ph = Placeholder("ph"_tstr);
+	int a = 6;
+	ph = a;
 	ASSERT_TRUE(val != var && val != ph);
 	var = 5;
 	ASSERT_TRUE(val == var && val != ph);
-	int a = 5;
-	ph = a;
+	a = 5;
 	ASSERT_TRUE(val == var && val == ph);
+	var = 6;
+	ASSERT_TRUE(val != var && val == ph);
+	var = 5;
 	a = 6;
 	ASSERT_TRUE(val <= var && val < ph);
 	ASSERT_TRUE(var >= val && ph > val);

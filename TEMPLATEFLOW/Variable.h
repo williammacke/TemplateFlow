@@ -7,7 +7,7 @@
 #include <string>
 #include <sstream>
 #include "math.h"
-#include "gcem/include/gcem.hpp"
+#include "include/gcem.hpp"
 
 namespace TF {
 	template <class T>
@@ -21,14 +21,17 @@ namespace TF {
 			constexpr T getVal() const {
 				return val;
 			}
-
 			template <class V>
-				 constexpr Value<T> getDerivative(const V& var) {
+				 constexpr Value<T> getDerivative(const V& var) const {
 					return Value<T>{0};
 				}
 
 			constexpr operator T() const {
 				return val;
+			}
+
+			template <class G, class O>
+			void Optimize(const G& gradient, const O& optimizer) const {
 			}
 
 			std::string getName() const {
@@ -103,15 +106,19 @@ namespace TF {
 				val = rhs;
 				return *this;
 			}
-
 			template <class V>
-				constexpr Value<T> getDerivative(const V& var) {
-					if constexpr(std::is_same_v<Var, V>) {
-						return 1;
+				constexpr auto getDerivative(const V& var) const {
+					if constexpr(std::is_same_v<V, Var<T, name...>>) {
+						return value(1);
 					}
 					else {
-						return 0;
+						return value(0);
 					}
+				}
+
+			template <class G, class O>
+				void Optimize(const G& gradient, const O& optimizer) const {
+					val += optimizer(gradient);
 				}
 
 			static std::string getName() {
@@ -147,6 +154,49 @@ namespace TF {
 
 	template <class T>
 		constexpr bool is_const_v = is_const<T>::value;
+
+	template <class T, char...name>
+		struct PH {
+			static T* val;
+
+			T getVal() const {
+				return *val;
+			}
+
+			template <class V>
+				constexpr auto getDerivative(const V& var) {
+					return Value<T>(T());
+				}
+
+			template <class G, class O>
+				void Optimize(const G& gradient, const O& optimizer) const {
+				}
+
+			operator T () const {
+				return *val;
+			}
+
+			PH& operator=(T& rhs) {
+				val = &rhs;
+				return *this;
+			}
+			const PH& operator=(T& rhs) const {
+				val = &rhs;
+				return *this;
+			}
+
+			std::string getName() const {
+				static char buffer[] = {name..., '\0'};
+				return buffer;
+			}
+		};
+	template <class T, char...name>
+		T* PH<T, name...>::val = nullptr;
+
+	template <class T = int, char...name>
+		constexpr auto Placeholder(t_string<name...>) {
+			return PH<T, name...>{};
+		}
 
 }
 

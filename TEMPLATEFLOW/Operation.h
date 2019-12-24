@@ -7,7 +7,8 @@
 #include <unordered_map>
 #include <string>
 #include "math.h"
-#include "gcem/include/gcem.hpp"
+#include "include/gcem.hpp"
+#include "linalg.h"
 
 namespace TF {
 
@@ -82,8 +83,8 @@ namespace TF {
 
 	template <class T, class E>
 		struct Addition {
-			T lhs;
-			E rhs;
+			const T lhs;
+			const E rhs;
 
 			constexpr Addition(const T& v1, const E& v2) : lhs(v1), rhs(v2) { }
 
@@ -91,14 +92,15 @@ namespace TF {
 				return lhs.getVal() + rhs.getVal();
 			}
 
-			void initVars() {
-				lhs.initVars();
-				rhs.initVars();
-			}
-
 			template <class V>
-				constexpr auto getDerivative(const V& var) {
+				constexpr auto getDerivative(const V& var) const {
 					return lhs.getDerivative(var) + rhs.getDerivative(var);
+				}
+
+			template <class G, class O>
+				void Optimize(const G& gradient, const O& optimizer) const {
+					lhs.optimize(gradient, optimizer);
+					rhs.optimize(gradient, optimizer);
 				}
 			operator decltype(lhs.getVal()+rhs.getVal())() const {
 				return lhs.getVal() + rhs.getVal();
@@ -132,8 +134,8 @@ namespace TF {
 
 	template <class T, class E>
 		struct Subtraction {
-			T lhs;
-			E rhs;
+			const T lhs;
+			const E rhs;
 			constexpr Subtraction(const T& v1, const E& v2) : lhs(v1), rhs(v2) { }
 
 			decltype(lhs.getVal() - rhs.getVal()) getVal() const {
@@ -141,7 +143,7 @@ namespace TF {
 			}
 
 			template <class V>
-				constexpr auto getDerivative(const V& var) {
+				constexpr auto getDerivative(const V& var) const {
 					return lhs.getDerivative(var) - rhs.getDerivative(var);
 				}
 
