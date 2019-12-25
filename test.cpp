@@ -10,6 +10,7 @@
 #include <cmath>
 #include "Iteration.h"
 #include "linalg.h"
+#include "lists.h"
 
 void test(int i) { }
 
@@ -23,8 +24,8 @@ constexpr auto test2() {
 
 int main() {
 	using namespace TF;
-	constexpr auto tester = test2();
-	std::cout << tester[0] << std::endl;
-	std::cout << tester[1] << std::endl;
+	constexpr auto a = test2();
+	constexpr Tensor<float, 2> b = {1,2};
+	constexpr Tensor<float, 2, 2> c = { {1,2}, {3,4}};
 	return 0;
 }

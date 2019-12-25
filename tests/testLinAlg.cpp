@@ -23,3 +23,29 @@ TEST(test_linAlg, dot_test) {
 	auto e = v2*v3;
 	ASSERT_EQ(e, 18);
 }
+
+TEST(test_linAlg, matMul_test) {
+	using namespace TF;
+	constexpr Mat<float, 2, 2> m1 = {{1,1}, {1,1,}};
+	constexpr Mat<float, 2, 2> m2 = {{1,1}, {1,1,}};
+	constexpr auto m3 = m1*m2;
+	Mat<float, 2, 2> m4 = {{2,2},{2,2}};
+	ASSERT_EQ(m3, m4);
+	constexpr Vector<float, 2> v = {1,1};
+	constexpr auto res = m1*v;
+	Vector<float, 2> v2 = {2,2};
+	ASSERT_EQ(res, v2);
+}
+
+TEST(test_linAlg, trans_test) {
+	using namespace TF;
+	constexpr Mat<float, 2, 2> m1 = {{1, 2}, {1,2}};
+	constexpr Mat<float, 2, 2> m2 = {{1,1}, {2,2}};
+	constexpr auto m3 = trans(m1);
+	ASSERT_EQ(m2, m3);
+	constexpr Vector<float, 2> v1;
+	constexpr rowVector<float, 2> v2;
+	constexpr auto v3 = trans(v1);
+	ASSERT_EQ(v2, v3);
+
+}
