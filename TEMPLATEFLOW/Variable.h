@@ -1,5 +1,6 @@
 #ifndef VARIABLE_H_
 #define VARIABLE_H_
+#include "linalg.h"
 #include <memory>
 #include <type_traits>
 #include <cmath>
@@ -69,6 +70,16 @@ namespace TF {
 		constexpr bool is_operation_v = is_operation<T>::value;
 
 	template <class T>
+		struct is_scalar<Value<T>> {
+			constexpr static bool value = is_scalar<T>::value;
+		};
+
+	template <class T>
+		struct is_vector<Value<T>> {
+			constexpr static bool value = is_vector<T>::value;
+		};
+
+	template <class T>
 		constexpr auto value(const T& val) {
 			if constexpr(is_operation_v<T>) {
 				return val;
@@ -134,6 +145,16 @@ namespace TF {
 	template <class T, char...name>
 		struct is_operation<Var<T, name...>> {
 			constexpr static bool value = true;
+		};
+
+	template <class T, char...name>
+		struct is_scalar<Var<T, name...>> {
+			constexpr static bool value = is_scalar<T>::value;
+		};
+
+	template <class T, char...name>
+		struct is_vector<Var<T, name...>> {
+			constexpr static bool value = is_vector<T>::value;
 		};
 
 

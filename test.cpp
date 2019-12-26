@@ -27,5 +27,9 @@ int main() {
 	constexpr auto a = test2();
 	constexpr Tensor<float, 2> b = {1,2};
 	constexpr Tensor<float, 2, 2> c = { {1,2}, {3,4}};
+	std::cout << c.size() << std::endl;
+	std::cout << c.size<1>() << std::endl;
+	std::cout << Tensor<float, 2, 2>::size() << std::endl;
+	std::cout << Tensor<float, 2, 2>::size<1>() << std::endl;
 	return 0;
 }
