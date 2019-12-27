@@ -496,6 +496,11 @@ namespace TF{
 			return matMulHelper(rhs, lhs, std::make_index_sequence<i>());
 		}
 
+	template <class T, class E, size_t dim>
+		constexpr auto operator*(const Vector<T, dim>& lhs, const rowVector<E, dim>& rhs) {
+			return static_cast<colVector<T, dim>>(lhs)*rhs;
+		}
+
 	template <class F, class E, size_t dim1, size_t dim2, size_t...dims1, size_t...dims2>
 		constexpr bool operator==(const Tensor<F, dim1, dims1...>& lhs, const Tensor<E, dim2, dims2...>& rhs) {
 			if constexpr(is_vector_v<Tensor<F, dim1, dims1...>> && is_vector_v<Tensor<E, dim2, dims2...>>) {

@@ -9,8 +9,58 @@
 #include <sstream>
 #include "math.h"
 #include "include/gcem.hpp"
+#include <tuple>
 
 namespace TF {
+
+	struct Zero {
+		constexpr static int getVal() {
+			return 0;
+		}
+
+		template <class V>
+			constexpr static Zero getDerivative(const V& var) {
+				return {};
+			}
+
+		constexpr operator int() const {
+			return 0;
+		}
+
+		std::string getName() const {
+			return "0";
+		}
+
+		constexpr static auto getVars() {
+			return std::make_tuple();
+		}
+
+
+	};
+
+	struct Id {
+		constexpr static int getVal() {
+			return 1;
+		}
+
+		template <class V>
+			constexpr static Zero getDerivative(const V& var) {
+				return {};
+			}
+
+		constexpr operator int() const {
+			return 1;
+		}
+
+		std::string getName() const {
+			return "1";
+		}
+
+		constexpr static auto getVars() {
+			return std::make_tuple();
+		}
+	};
+
 	template <class T>
 		struct Value {
 			const T val;
@@ -23,22 +73,22 @@ namespace TF {
 				return val;
 			}
 			template <class V>
-				 constexpr Value<T> getDerivative(const V& var) const {
-					return Value<T>{0};
+				constexpr Zero getDerivative(const V& var) const {
+					return {};
 				}
 
 			constexpr operator T() const {
 				return val;
 			}
 
-			template <class G, class O>
-			void Optimize(const G& gradient, const O& optimizer) const {
-			}
-
 			std::string getName() const {
 				std::stringstream s;
 				s << val;
 				return s.str();
+			}
+
+			constexpr static auto getVars() {
+				return std::make_tuple();
 			}
 
 		};
@@ -52,7 +102,6 @@ namespace TF {
 		struct is_value<Value<T>> {
 			constexpr static bool value = true;
 		};
-
 	template <class T>
 		constexpr bool is_value_v = is_value<T>::value;
 
@@ -66,12 +115,32 @@ namespace TF {
 			constexpr static bool value = true;
 		};
 
+	template <>
+		struct is_operation<Zero> {
+			constexpr static bool value = true;
+		};
+
+	template <>
+		struct is_operation<Id> {
+			constexpr static bool value = true;
+		};
+
 	template <class T>
 		constexpr bool is_operation_v = is_operation<T>::value;
 
 	template <class T>
 		struct is_scalar<Value<T>> {
 			constexpr static bool value = is_scalar<T>::value;
+		};
+
+	template <>
+		struct is_scalar<Zero> {
+			constexpr static bool value = true;
+		};
+
+	template <>
+		struct is_scalar<Id> {
+			constexpr static bool value = true;
 		};
 
 	template <class T>
@@ -95,9 +164,9 @@ namespace TF {
 		using t_string=std::integer_sequence<char, chars...>;
 
 	template <typename T, T...chars>
-	constexpr t_string<chars...> operator""_tstr() {
-		return {};
-	}
+		constexpr t_string<chars...> operator""_tstr() {
+			return {};
+		}
 
 	template <class T,  char...name>
 		struct Var {
@@ -120,16 +189,13 @@ namespace TF {
 			template <class V>
 				constexpr auto getDerivative(const V& var) const {
 					if constexpr(std::is_same_v<V, Var<T, name...>>) {
-						return value(1);
+						//return value(1);
+						return Id();
 					}
 					else {
-						return value(0);
+						//return value(0);
+						return Zero();
 					}
-				}
-
-			template <class G, class O>
-				void Optimize(const G& gradient, const O& optimizer) const {
-					val += optimizer(gradient);
 				}
 
 			static std::string getName() {
@@ -140,12 +206,17 @@ namespace TF {
 			operator T() const {
 				return val;
 			}
+
+			static constexpr auto getVars() {
+				return std::make_tuple(Var{});
+			}
 		};
 
 	template <class T, char...name>
 		struct is_operation<Var<T, name...>> {
 			constexpr static bool value = true;
 		};
+
 
 	template <class T, char...name>
 		struct is_scalar<Var<T, name...>> {
@@ -173,6 +244,16 @@ namespace TF {
 			constexpr static bool value = is_value_v<T> || !is_operation_v<T>;
 		};
 
+	template <>
+		struct is_const<Zero> {
+			constexpr static bool value = true;
+		};
+
+	template <>
+		struct is_const<Id> {
+			constexpr static bool value = true;
+		};
+
 	template <class T>
 		constexpr bool is_const_v = is_const<T>::value;
 
@@ -186,7 +267,7 @@ namespace TF {
 
 			template <class V>
 				constexpr auto getDerivative(const V& var) {
-					return Value<T>(T());
+					return Zero();
 				}
 
 			template <class G, class O>
@@ -218,6 +299,11 @@ namespace TF {
 		constexpr auto Placeholder(t_string<name...>) {
 			return PH<T, name...>{};
 		}
+
+	template <class T>
+		struct is_operation<PH<T>> {
+			constexpr static bool value = true;
+		};
 
 }
 

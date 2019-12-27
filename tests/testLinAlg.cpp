@@ -49,6 +49,8 @@ TEST(test_linAlg, matMul_test) {
 	constexpr colVector<float, 2> t2 = {1, 1};
 	constexpr auto t3 = t2*t1;
 	ASSERT_EQ(t3, m1);
+	constexpr Vector<float, 2> vec = {1,1};
+	ASSERT_EQ(vec*t1, t3);
 }
 
 TEST(test_linAlg, trans_test) {
